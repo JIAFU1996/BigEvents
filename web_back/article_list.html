@@ -254,13 +254,13 @@
                 <ul class="pagination pagination-sm">
                     <li class="page-item first disabled"><a href="#" class="page-link">首页</a></li>
                     <li class="page-item prev disabled"><a href="#" class="page-link">上一页</a></li>
-                    <li class="page-item active"><a href="#" class="page-link">1</a></li>
-                    <li class="page-item"><a href="#" class="page-link">2</a></li>
-                    <li class="page-item"><a href="#" class="page-link">3</a></li>
-                    <li class="page-item"><a href="#" class="page-link">4</a></li>
-                    <li class="page-item"><a href="#" class="page-link">5</a></li>
-                    <li class="page-item"><a href="#" class="page-link">6</a></li>
-                    <li class="page-item"><a href="#" class="page-link">7</a></li>
+                    <li class="page-item page-num  active"><a href="#" class="page-link">1</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">2</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">3</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">4</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">5</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">6</a></li>
+                    <li class="page-item page-num "><a href="#" class="page-link">7</a></li>
                     <li class="page-item next"><a href="#" class="page-link btn-next">下一页</a></li>
                     <li class="page-item last"><a href="#" class="page-link btn-pre">尾页</a></li>
                 </ul>
@@ -323,6 +323,7 @@
                 success: function (backDate) {
                     var resHtml = template('tem-content-type', backDate);
                     $('#selCategory').html(resHtml);
+
                 }
             })
 
@@ -358,6 +359,8 @@
             //2.点击筛选按钮,获取对应的文章信息
             $('#btnSearch').on('click', function (e) {
                 var num = 1;
+                var totalPage;
+                var isCan = false;
                 e.preventDefault();
                 //2.1获取当前的多选框值
                 var type = $('#selCategory').val();
@@ -375,23 +378,37 @@
                             page: num,
                         },
                         success: function (backDate) {
-                            // console.log(backDate);
-                            var resHtml = template('tem-content-containt', backDate);
-                            $('tbody').html(resHtml);
+                            if (backDate.code == 200) {
+                                totalPage = backDate.totalPage;
+                                var resHtml = template('tem-content-containt', backDate);
+                                $('tbody').html(resHtml);
+                                isCan = true;
+                            }
                         }
                     })
                 }
                 getajax();
-                $('.btn-next').on('click',function(){
+                $('.btn-next').on('click', function () {
                     num++;
                     getajax();
-                    $('.page-item').eq(num+1).addClass('active').siblings().removeClass('active');
+                    $('.page-item').eq(num + 1).addClass('active').siblings().removeClass('active');
                 })
-                $('.btn-pre').on('click',function(){
+                $('.btn-pre').on('click', function () {
                     num--;
                     getajax();
-                    $('.page-item').eq(num+1).addClass('active').siblings().removeClass('active');
+                    $('.page-item').eq(num + 1).addClass('active').siblings().removeClass('active');
                 })
+
+                setTimeout(function () {
+                    if (isCan == true) {
+                        $('.page-num').remove();
+                        for (var i = 1; i <= totalPage; i++) {
+                            $li = '<li class="page-item page-num "><a href="#" class="page-link">' + i + '</a></li>'
+                            $('.next').before($li);
+                        }
+                        $('.page-item').eq(2).addClass('active')
+                    }
+                },100)
 
 
             })
