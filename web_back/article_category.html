@@ -45,7 +45,7 @@
                         <td class="text-center">
                             <a href="javascript:editTr({&quot;id&quot;:&quot;2&quot;,&quot;slug&quot;:&quot;funny&quot;,&quot;name&quot;:&quot;奇趣事&quot;});"
                                 class="btn btn-info btn-xs">编辑</a>
-                            <a href="javascript:deleteTr( 2 );" class="btn btn-danger btn-xs">删除</a>
+                            <a href="javascript:deleteTr( 2 );" class="btn btn-danger btn-xs btn-delete">删除</a>
                         </td>
                     </tr>
 
@@ -72,7 +72,8 @@
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-center">
-                            <a href="#" class="btn btn-success" data-toggle="modal" data-target="#addModal">新增分类</a>
+                            <a href="#" class="btn btn-success btn-new" data-toggle="modal"
+                                data-target="#addModal">新增分类</a>
                         </td>
                     </tr>
                 </tfoot>
@@ -89,6 +90,7 @@
                 </div>
                 <div class="modal-body">
                     <form>
+                        <input type="hidden" value="id" id='btn-id'>
                         <div class="form-group">
                             <label for="recipient-name" class="control-label">分类名称:</label>
                             <input type="text" class="form-control" id="recipient-name">
@@ -116,8 +118,8 @@
             <td>{{$value.name}}</td>
             <td>{{$value.slug}}</td>
             <td class="text-center">
-                <a href="javascript:editTr({&quot;id&quot;:&quot;1&quot;,&quot;slug&quot;:&quot;uncategorized&quot;,&quot;name&quot;:&quot;未分类&quot;});" class="btn btn-info btn-xs">编辑</a>
-                <a href="javascript:deleteTr( {{$value.id}} );" class="btn btn-danger btn-xs">删除</a>
+                <a href="javascript:void(0);" data-id='{{$value.id}}' class="btn btn-info btn-xs btn-edit">编辑</a>
+                <a href="javascript:void(0);" data-id= '{{$value.id}}' class="btn btn-danger btn-xs btn-delete">删除</a>
             </td>
         </tr>
         {{/each}}
@@ -138,12 +140,7 @@
         });
 
 
-        $('.category_table').delegate('a', 'click', function () {
-            if ($(this).hasClass('btn-info')) {
-                $('#addModal .modal-title').html('修改分类名称');
-                $('#addModal').modal('show');
-            }
-        })      
+
     </script>
 
     <script>
@@ -187,29 +184,41 @@
             名称	类型	说明
             msg	string	文字信息 ‘增加成功’ ‘增加失败’
             */
-            $('#model_add').click(function () {
-                var type_name = $('#recipient-name').val().trim();
-                var type_nickname = $('#recipient-nickname').val().trim();
-                if (type_name == '' || type_nickname == '') {
-                    alert('内容不能为空')
-                    return;
-                }
-                $.ajax({
-                    type: 'post',
-                    url: 'http://localhost:8000/admin/category_add',
-                    data: {
-                        name: type_name,
-                        slug: type_nickname,
-                    },
-                    success: function (backData) {
-                        if(backData.code==200){
-                            getType();
-                        }
-                    }
+            $('a.btn-new').on('click', function () {
 
-                })
-                $('#addModal').modal('hide');
-            });
+
+                $('#addModal .modal-title').html('新增类别');
+                $('#model_add').removeClass('btn-success').text('新增');
+
+                $('#recipient-name').val('');
+                $('#recipient-nickname').val('');
+
+
+                $('#model_add').off('click').click(function () {
+                    var type_name = $('#recipient-name').val().trim();
+                    var type_nickname = $('#recipient-nickname').val().trim();
+                    if (type_name == '' || type_nickname == '') {
+                        alert('内容不能为空')
+                        return;
+                    }
+                    $.ajax({
+                        type: 'post',
+                        url: 'http://localhost:8000/admin/category_add',
+                        data: {
+                            name: type_name,
+                            slug: type_nickname,
+                        },
+                        success: function (backData) {
+                            if (backData.code == 200) {
+                                getType();
+                            }
+                        }
+                    })
+                    $('#addModal').modal('hide');
+                });
+            })
+
+
 
             //3.点击文章编辑按钮,修改当前文章类别
             /*
@@ -225,6 +234,79 @@
             名称	类型	说明
             msg	string	文字信息 ‘编辑成功’ ‘编辑失败’
             */
+            $('tbody').on('click', 'a.btn-edit', function () {
+                var that = $(this);
+                //1.展示页面
+                $('#addModal .modal-title').html('修改分类名称');
+                $('#addModal').modal('show');
+                $('#model_add').addClass('btn-success').text('保存')
+                //2.获取当前的值显示在上面
+                $('#recipient-name').val($(this).parent().prev().prev().text())
+                $('#recipient-nickname').val($(this).parent().prev().text())
+                $('#btn-id').val($(this).attr('data-id'))
+
+                $('#model_add').off('click').on('click', function () {
+                    //获取修改后的值
+                    var name = $('#recipient-name').val();
+                    var nickname = $('#recipient-nickname').val();
+                    var id = $('#btn-id').val();
+                    //发送ajax请求
+                    $.ajax({
+                        type: 'post',
+                        url: 'http://localhost:8000/admin/category_edit',
+                        data: {
+                            id: id,
+                            name: name,
+                            slug: nickname,
+                        },
+                        success: function (backData) {
+                            if (backData.code == 200) {
+                                that.parent().prev().prev().text(name);
+                                that.parent().prev().text(nickname);
+
+                                $('#addModal').modal('hide');
+                            }
+
+                        }
+
+                    })
+
+                })
+            })
+
+
+
+
+            //4.点击删除,删除当前的tr;
+            /*
+            删除文章类别
+            请求地址：http://localhost:8000/admin/category_delete 网络地址: https://autumnfish.cn/big/admin/category_delete
+            请求方式：post
+            请求参数：
+            名称	类型	说明
+            id	number	类别 id
+            返回数据：
+            名称	类型	说明
+            msg	string	文字信息 ‘删除成功’ ‘删除失败’
+            */
+            $('tbody').on('click', 'a.btn-delete', function () {
+                var that = $(this);
+                var id = $(this).attr('data-id');
+                //发送ajax请求
+                $.ajax({
+                    type: 'post',
+                    url: 'http://localhost:8000/admin/category_delete',
+                    data: {
+                        id: id,
+                    },
+                    success: function (backData) {
+                        if (backData.code == 200) {
+                            that.parent().parent().remove();
+                        }
+
+                    }
+                })
+            })
 
 
 
