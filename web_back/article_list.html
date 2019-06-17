@@ -251,24 +251,15 @@
             </table>
 
             <div class="row text-center">
-                <ul class="pagination pagination-sm">
-                    <li class="page-item first disabled"><a href="#" class="page-link">首页</a></li>
-                    <li class="page-item prev disabled"><a href="#" class="page-link">上一页</a></li>
-                    <li class="page-item page-num  active"><a href="#" class="page-link">1</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">2</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">3</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">4</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">5</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">6</a></li>
-                    <li class="page-item page-num "><a href="#" class="page-link">7</a></li>
-                    <li class="page-item next"><a href="#" class="page-link btn-next">下一页</a></li>
-                    <li class="page-item last"><a href="#" class="page-link btn-pre">尾页</a></li>
+                <ul class="pagination pagination-sm" id="pagination-demo">
+
                 </ul>
             </div>
 
         </div>
     </div>
 
+    <script src="./js/twbs-pagination-master/jquery.twbsPagination.min.js"></script>
 
     <script id="tem-content-type" type="text/html">
 
@@ -288,8 +279,8 @@
             <td class="text-center">{{v.date}}</td>
             <td class="text-center">{{v.state}}</td>
             <td class="text-center">
-                <a href="article_edit.html" class="btn btn-default btn-xs">编辑</a>
-                <a href="javascript:void(0);" data-id='{{v.id}}' class="btn btn-danger btn-xs">删除</a>
+                <a href="article_edit.html" data-id='{{v.id}}' class="btn btn-default btn-xs btn-edit">编辑</a>
+                <a href="javascript:void(0);" data-id='{{v.id}}' class="btn btn-danger btn-xs btn-delete">删除</a>
             </td>
         </tr>
         {{/each}}
@@ -355,64 +346,150 @@
             date:string 类型， 文章发布时间
             state:string 类型，文章状态
                     */
-
             //2.点击筛选按钮,获取对应的文章信息
-            $('#btnSearch').on('click', function (e) {
-                var num = 1;
-                var totalPage;
-                var isCan = false;
-                e.preventDefault();
-                //2.1获取当前的多选框值
+            //2.1获取文章信息的aiax函数
+            function getContent(num) {
+
                 var type = $('#selCategory').val();
                 var state = $('#selStatus').val();
 
-                function getajax() {
-                    //2.2发送ajax请求
-                    $.ajax({
-                        type: 'get',
-                        url: 'http://localhost:8000/admin/search',
-                        data: {
-                            type: type,
-                            state: state,
-                            perpage: 8,
-                            page: num,
-                        },
-                        success: function (backDate) {
-                            if (backDate.code == 200) {
-                                totalPage = backDate.totalPage;
-                                var resHtml = template('tem-content-containt', backDate);
-                                $('tbody').html(resHtml);
-                                isCan = true;
-                            }
-                        }
-                    })
-                }
-                getajax();
-                $('.btn-next').on('click', function () {
-                    num++;
-                    getajax();
-                    $('.page-item').eq(num + 1).addClass('active').siblings().removeClass('active');
-                })
-                $('.btn-pre').on('click', function () {
-                    num--;
-                    getajax();
-                    $('.page-item').eq(num + 1).addClass('active').siblings().removeClass('active');
-                })
+                //发送ajax请求
+                $.ajax({
+                    type: 'get',
+                    url: 'http://localhost:8000/admin/search',
+                    data: {
+                        type: type,
+                        state: state,
+                        perpage: 8,
+                        page: num,
+                    },
+                    success: function (backData) {
+                        console.log(backData);
+                        var resHtml = template('tem-content-containt', backData);
+                        $('tbody').html(resHtml);
 
-                setTimeout(function () {
-                    if (isCan == true) {
-                        $('.page-num').remove();
-                        for (var i = 1; i <= totalPage; i++) {
-                            $li = '<li class="page-item page-num "><a href="#" class="page-link">' + i + '</a></li>'
-                            $('.next').before($li);
+                        var totalPages = backData.totalPage;
+                        if (mytotalpages != totalPages) {
+                            mytotalpages = totalPages;
+                            var currentPage = 1;
+                            $pagination.twbsPagination('destroy');
+                            $pagination.twbsPagination($.extend({}, defaultOpts, {
+                                startPage: currentPage,
+                                totalPages: totalPages
+                            }));
                         }
-                        $('.page-item').eq(2).addClass('active')
+
                     }
-                },100)
+                })
 
+            }
+            //页面一加载调用一次;
+            getContent(1);
+            //3.1页码插件简单用法
+            // $('#pagination-demo').twbsPagination({
+            //     totalPages: 35,
+            //     visiblePages: 7,
+            //     onPageClick: function (event, page) {
+            //         getContent(page);
+            //     }
+            // });
+            //3.2高级用法
+            var mytotalpages = 1;
+            var $pagination = $('#pagination-demo');
+            var defaultOpts = {
+                first: '首页',
+                prev: '上一页',
+                next: '下一页',
+                last: '尾页',
+                totalPages: mytotalpages,
+                visiblePages: 7,
+                onPageClick: function (event, page) {
+                    isCan = false;
+                    getContent(page);
+                }
+            };
+            $pagination.twbsPagination(defaultOpts);
 
+            //点击筛选按钮时,进行一次获取;
+
+            $('#btnSearch').on('click', function (e) {
+                e.preventDefault();
+                getContent(1);
+                currentPage2 = $pagination.twbsPagination('getCurrentPage');
+                if (currentPage2 != 1) {
+                    $pagination.twbsPagination('destroy');
+                    $pagination.twbsPagination($.extend({}, defaultOpts, {
+                        startPage: 1,
+                        totalPages:  mytotalpages,
+                    }));
+                }
             })
-            $('#btnSearch').click();
+
+
+
+
+
+
+            //3.点击删除按钮,删除事件
+            //使用委托事件
+            /*
+            删除文章
+            请求地址：http://localhost:8000/admin/article_delete 网络地址: https://autumnfish.cn/big/admin/article_delete
+            请求方式：get
+            请求参数：
+            名称	类型	说明
+            id	number	文章 id
+            返回数据：
+            名称	类型	说明
+            msg	string	文字信息 ‘删除成功’ ‘删除失败’
+            */
+            $('tbody').on('click', '.btn-delete', function () {
+                var id = $(this).attr('data-id');
+                var that = $(this)
+
+                $.ajax({
+                    type: 'get',
+                    url: 'http://localhost:8000/admin/article_delete',
+                    data: {
+                        id: id,
+                    }, success: function (backDate) {
+                        console.log(backDate);
+                        that.parent().parent().remove();
+                    }
+                })
+            })
+
+
+            //4.编辑文章
+            //4.1使用委托事件
+            /*
+            文章搜索
+            请求地址：http://localhost:8000/admin/search 网络地址: https://autumnfish.cn/big/admin/search
+            请求方式：get
+            请求参数：
+            名称	类型	说明
+            id	number	文章 id，根据 id 查询时，其余参数可以不选择
+            */
+            $('tbody').on('click', '.btn-edit', function (e) {
+
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                console.log(id)
+                $.ajax({
+                    type: 'get',
+                    url: 'http://localhost:8000/admin/search',
+                    data: {
+                        id: id,
+                    },
+                    success: function (backDate) {
+                        sessionStorage.setItem('backDate', JSON.stringify(backDate));
+                        window.location.href = 'article_edit.html';
+                    }
+
+                })
+            })
+
+
         })
 
 
